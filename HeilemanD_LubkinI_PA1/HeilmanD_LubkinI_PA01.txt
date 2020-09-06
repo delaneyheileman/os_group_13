@@ -1,1 +1,5 @@
+ONE:
 
+a) openat(AT_FDCWD, "myTstFile", O_RDWR)   = -1 ENOENT (No such file or directory)
+
+This is the command that tries to open the file and returns a failed condition 

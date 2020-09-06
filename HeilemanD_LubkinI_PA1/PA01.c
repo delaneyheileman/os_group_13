@@ -15,4 +15,6 @@ int main(void){
     }
     fclose(fd); printf("\n Program successful ends\n");
   }
+
+  return 0;
 }
