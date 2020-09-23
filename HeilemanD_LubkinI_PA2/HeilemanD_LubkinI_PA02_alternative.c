@@ -5,35 +5,26 @@
 #include <sys/types.h>
 
 int toggle = 0; //initializing the global toggle value used to toggle the yes function
-/*
-void child_signalHandler(int sig) {
-	if( sig == 2 ) {
-		printf("\nIn child signal handler, in ctrl+c condition\n");
-		kill(getpid(),19);
-	}
-	else if( sig == 20 ) {
-		printf("\nIn child signal handler, in ctrl+z condition\n");
-		if(toggle == 0) {
-			kill(getpid(), 19); //pauses the process (stops it)
-			toggle = 1;
-		}
-		else {
-			kill(getpid(), 18); //continues the process
-			toggle = 0;
-		}
-	}
-}
-*/
+
+/*Authors: Delaney Heileman and Ian Lubkin
+ *Last edit: September 23 2020 at 7:30 pm EST
+ *Purpose: This program creates a child process which begins the linux yes command.
+ *It also defines handlers for SIGTSTP and SIGINT, which will toggle the child process,
+ *and terminate both, respectively. 
+ *Notes: The toggling and termination of the child process is not handled directly in the
+ *signal handler because it is not possible to pass a variable from main to the signal handler.
+ *To resolve this issue, a global variable is used to communicate the effects of calling the
+ *signal handler. The effects are as described above.
+ */
 
 void parent_signalHandler(int sig) {
 	if(sig == 2) {
-		printf("\nIn parent signal handler, in ctrl+c condition\n");
-		//wait(NULL);
+		printf("\nctrl+c caught, terminating both processes\n");
 		toggle = 2;
+		exit(1);
 		return;
 	}
 	else if(sig == 20) {
-		printf("\nIn parent signal handler, in catch condition\n");
 		toggle = (toggle == 0 ? 1 : 0 );
 		return;
 	}
@@ -41,63 +32,53 @@ void parent_signalHandler(int sig) {
 }
 
 int main() {
-	//the below lines are used to execute execve, which replaces the child
-	//process with a new process 
-	//(ideally, a 'null' process and the yes process
+	struct sigaction actp; 
+	actp.sa_handler = parent_signalHandler; 
+	sigemptyset(&actp.sa_mask); 
+	actp.sa_flags = 0;
+
+	sigaction(SIGINT, &actp, 0);
+	struct sigaction actp2;
+	actp2.sa_handler = parent_signalHandler;
+	sigemptyset(&actp2.sa_mask);
+
+	sigaction(SIGTSTP, &actp2, 0); 
+
 	char *args[] = {"/bin/yes", NULL, 0};
 	char *env[] = { 0 };
 
 	pid_t pid = fork(); //creates a child process
 
 	if(pid == 0) { //child process
-		/*struct sigaction actc; 
-		actc.sa_handler = child_signalHandler; 
-		sigemptyset(&actc.sa_mask); 
-		actc.sa_flags = 0;
-
-		sigaction(SIGINT, &actc, 0);
-		struct sigaction actc2;
-		actc2.sa_handler = child_signalHandler;
-		sigemptyset(&actc2.sa_mask);
-		//actc2.sa_flags = SA_NODEFER; 
-
-		sigaction(SIGTSTP, &actc2, 0); 
-		*/
 		execve("/bin/yes", args, env);
 	}	
-	else if(pid < 0 ) { //error condition
-		printf("error! oops");
-	}
-	else { //parent process
-		struct sigaction actp; 
-		actp.sa_handler = parent_signalHandler; 
-		sigemptyset(&actp.sa_mask); 
-		actp.sa_flags = 0;
-
-		sigaction(SIGINT, &actp, 0);
-		struct sigaction actp2;
-		actp2.sa_handler = parent_signalHandler;
-		sigemptyset(&actp2.sa_mask);
-		//actp2.sa_flags = SA_NODEFER; 
-
-		sigaction(SIGTSTP, &actp2, 0); 
-
-		//wait(NULL);	
 	
-		while(1){
+	else if(pid < 0 ) { //error condition
+		perror("Fork error");
+	}
+	
+	else { //parent process
+		
+		while(1){			
+			
 			if(toggle == 0) {
-				kill(pid,18);
+				printf("\nctrl+z caught, resuming child process\n");
+				kill(pid,18); //18 corresponds to SIGCONT, continue/resume the process
 			}
+			
 			else if (toggle == 1) {
-				kill(pid, 19);
+				printf("\nctrl+z caught, stopping child process\n");
+				kill(pid, 19); //19 corresponds to SIGSTOP, stopthe process
 			}
+			
 			else if (toggle == 2) {
-				kill(pid, 9);
+				kill(pid, 9); //9 corresponds to SIGKILL, terminate the process
+				wait(NULL);
 			}
+			
 			wait(NULL);
 		}
 	}
 	
-
 	return 0;
 }
