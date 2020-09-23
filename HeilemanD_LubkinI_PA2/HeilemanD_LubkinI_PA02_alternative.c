@@ -1,11 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <sys/types.h>
-
-int toggle = 0; //initializing the global toggle value used to toggle the yes function
-
+#
 /*Authors: Delaney Heileman and Ian Lubkin
  *Last edit: September 23 2020 at 7:30 pm EST
  *Purpose: This program creates a child process which begins the linux yes command.
@@ -17,6 +10,14 @@ int toggle = 0; //initializing the global toggle value used to toggle the yes fu
  *signal handler. The effects are as described above.
  */
 
+include <stdio.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <sys/types.h>
+
+int toggle = 0; //initializing the global toggle value used to toggle the yes function
+
 void parent_signalHandler(int sig) {
 	if(sig == 2) {
 		printf("\nctrl+c caught, terminating both processes\n");
@@ -26,6 +27,10 @@ void parent_signalHandler(int sig) {
 	}
 	else if(sig == 20) {
 		toggle = (toggle == 0 ? 1 : 0 );
+		if( toggle == 0 ) 
+			printf("\nctrl+z caught, stopping child process\n");
+		else
+			printf("\nctrl+z caught, resuming child process\n");
 		return;
 	}
 	return;
@@ -62,12 +67,12 @@ int main() {
 		while(1){			
 			
 			if(toggle == 0) {
-				printf("\nctrl+z caught, resuming child process\n");
+				//printf("\nctrl+z caught, resuming child process\n");
 				kill(pid,18); //18 corresponds to SIGCONT, continue/resume the process
 			}
 			
 			else if (toggle == 1) {
-				printf("\nctrl+z caught, stopping child process\n");
+				//printf("\nctrl+z caught, stopping child process\n");
 				kill(pid, 19); //19 corresponds to SIGSTOP, stopthe process
 			}
 			
