@@ -47,7 +47,7 @@ int main() {
 		perror("Fork error");
 	}
 	else { //parent process
-		wait(NULL);l
+		wait(NULL);
 	}
 	while(1){}
 
