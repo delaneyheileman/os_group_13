@@ -1,111 +1,87 @@
+/*Authors: Delaney Heileman and Ian Lubkin
+ *Last edit: September 23 2020 at 7:30 pm EST
+ *Purpose: This program creates a child process which begins the linux yes command.
+ *It also defines handlers for SIGTSTP and SIGINT, which will toggle the child process,
+ *and terminate both, respectively. 
+ *Notes: The toggling and termination of the child process is not handled directly in the
+ *signal handler because it is not possible to pass a variable from main to the signal handler.
+ *To resolve this issue, a global variable is used to communicate the effects of calling the
+ *signal handler. The effects are as described above.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <sys/types.h>
 
-//sigint is numbered 2 on x86 and sigtstp is numbered 20
 int toggle = 0; //initializing the global toggle value used to toggle the yes function
 
-/*for some reason, the program exits after calling ctrl+z.
- * It correctly reads the signal and enters the elseif
- * but then instead of continuing the child process, it
- * terminates the child process.
- * I have not been able to resolve this or figure out why
- * it is happening.
- */
-
-/*The function userDef_signalHandler is called by the sigaction function
- * in the main program when ctrl+z or ctrl+c are entered in terminal. It 
- * should terminate the child and parent if ctrl+c is pressed and toggle
- * the 'yes' function if ctrl+z is pressed.
- * Currently, the function is entered correctly upon signaling and the correct
- * branch of the conditional is entered for each signal, but upon completion
- * the child process which called the handler terminates, which it should not.
- */
-void userDef_signalHandler(int sig) {
-	if( sig == 2 ) {
-		printf("\nkilling child process from ctrl+c\n");
-		exit(1); //when this is commented out ctrl+c still terminates the child (it shouldn't...)
+void parent_signalHandler(int sig) {
+	if(sig == 2) {
+		printf("\nctrl+c caught, terminating both processes\n");
+		toggle = 2;
+		exit(1);
 	}
-	else if( sig == 20 ) {
-		char *args[] = {"/bin/yes", NULL, 0};
-		char *env[] = { 0 };
-		char *args1[] = {"/bin/sleep", "0.000001", NULL};
-		char *env1[] = { 0 };
-		printf("\nin sigtstp\n");
-		if(toggle == 0) {
-			while(1) {
-			printf("\nin handler while\n");
-			execve("/bin/sleep", args1, env1);	
-			toggle = 1;
-			}
-		}
-		else {
-			execve("/bin/yes", args, env);	
-			toggle = 0;
-		}
-		
+	else if(sig == 20) {
+		toggle = (toggle == 0 ? 1 : 0 );
+		if( toggle == 0 ) 
+			printf("\nctrl+z caught, stopping child process\n");
+		else
+			printf("\nctrl+z caught, resuming child process\n");
 	}
 }
-
 
 int main() {
-	/*Lines 49 to 62 define the catching of the SIGINT and SIGTSTP signals. 
-	 *The signals are redirect to userDef_signalHandler, above.
-	 */
-	int wstatus; //this will hold the return status of the waitpid function 
-	//code to catch SIGINT
-	struct sigaction act; //this struct is used to call the sigaction f'n
-	act.sa_handler = userDef_signalHandler; //this defines the new handler
-	sigemptyset(&act.sa_mask); //this empties the mask; the mask blocks certain signals from being received *while in the newly defined handler*. This is not needed in our program.
-	act.sa_flags = 0;
+	struct sigaction actp; 
+	actp.sa_handler = parent_signalHandler; 
+	sigemptyset(&actp.sa_mask); 
+	actp.sa_flags = 0;
 
-	sigaction(SIGINT, &act, 0); //catches SIGINT
-	//code to catch SIGTSTP
-	struct sigaction act2;
-	act2.sa_handler = userDef_signalHandler;
-	sigemptyset(&act2.sa_mask);
-	act2.sa_flags = SA_NODEFER; //this should allow the ctrl+z call to be received while in the user defined handler, allowing us to exit the loop in that handler to toggle.
+	sigaction(SIGINT, &actp, 0);
+	struct sigaction actp2;
+	actp2.sa_handler = parent_signalHandler;
+	sigemptyset(&actp2.sa_mask);
 
-	sigaction(SIGTSTP, &act2, 0); //catches SIGTSTP
-	
-	//the below lines are used to execute execve, which replaces the child
-	//process with a new process 
-	//(ideally, a 'null' process and the yes process
-	char *args[] = {"/bin/yes", NULL, 0};
-	char *env[] = { 0 };
-	char *args1[] = {"/bin/sleep", "0.000001", NULL};
-	//char *args1[] = {"/bin/sleep", "10", NULL}; //i was using this to test of execve exits after one spin
-	//notably! if toggle is set to 1, \so that the while loop in the child below is entered imediately, the program exits after the first completion of the execve. This is the problem: upon execve completion the child process terminates.  
-	char *env1[] = { 0 };
+	sigaction(SIGTSTP, &actp2, 0); 
+
+	//char *args[] = {"/bin/yes", NULL, 0};
+	//char *env[] = { 0 };
+	char* const arg1[] = {"yes","aa",NULL};
 
 	pid_t pid = fork(); //creates a child process
-while(1) {
-	if(pid == 0) { //child process
-		/*
-		//this while loop constantly sleeps for a us, until toggled
-		//unfortunately, it does not appear to be entered ever
-		while( toggle == 1 ) { 
-		execve("/bin/sleep", args1, env1);
-		}
-		execve("/bin/yes", args, env);//when toggle !=1, yes is executed 
-		*/
-		while(1){}
-	}	
-	else if(pid < 0 ) { //error condition
-		printf("error! oops");
-	}
-	else { //parent process
-		/*This code is intended to wait for the child state to change
-		 *(which is what waitpid does) and only exit if the state
-		 *change was from an exit call. Signals count as state changes.
-		 */
-		waitpid(pid, &wstatus, 0);
-		printf("parent process exiting\n");
-		if(WIFEXITED(wstatus))
-			break;
-	}
-}
 
+	if(pid == 0) { //child process
+		//execve("/bin/yes", args, env);
+		execv("/usr/bin/yes",arg1); 
+	}	
+	
+	else if(pid < 0 ) { //error condition
+		perror("Fork error");
+	}
+	
+	else { //parent process
+		
+		while(1){			
+			
+			if(toggle == 0) {
+				//printf("\nctrl+z caught, resuming child process\n");
+				kill(pid,18); //18 corresponds to SIGCONT, continue/resume the process
+			}
+			
+			else if (toggle == 1) {
+				//printf("\nctrl+z caught, stopping child process\n");
+				kill(pid, 19); //19 corresponds to SIGSTOP, stopthe process
+			}
+			
+			else if (toggle == 2) {
+				kill(pid, 9); //9 corresponds to SIGKILL, terminate the process
+				//wait(NULL);
+			}
+			
+			wait(NULL);
+		}
+	}
+	
 	return 0;
 }

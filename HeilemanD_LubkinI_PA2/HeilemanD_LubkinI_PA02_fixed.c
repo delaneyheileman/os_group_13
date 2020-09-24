@@ -1,4 +1,3 @@
-#
 /*Authors: Delaney Heileman and Ian Lubkin
  *Last edit: September 23 2020 at 7:30 pm EST
  *Purpose: This program creates a child process which begins the linux yes command.
@@ -17,23 +16,22 @@
 #include <sys/types.h>
 
 int toggle = 0; //initializing the global toggle value used to toggle the yes function
-
+int signum = 0;
 void parent_signalHandler(int sig) {
 	if(sig == 2) {
 		printf("\nctrl+c caught, terminating both processes\n");
 		toggle = 2;
-		exit(1);
-		return;
+		signum = 2;
+		//exit(1);
 	}
 	else if(sig == 20) {
+		signum = 20;
 		toggle = (toggle == 0 ? 1 : 0 );
 		if( toggle == 0 )
 			printf("\nctrl+z caught, stopping child process\n");
 		else
 			printf("\nctrl+z caught, resuming child process\n");
-		return;
 	}
-	return;
 }
 
 int main() {
@@ -43,29 +41,52 @@ int main() {
 	actp.sa_flags = 0;
 
 	sigaction(SIGINT, &actp, 0);
+	
 	struct sigaction actp2;
 	actp2.sa_handler = parent_signalHandler;
 	sigemptyset(&actp2.sa_mask);
 
 	sigaction(SIGTSTP, &actp2, 0);
 
-	char *args[] = {"/bin/yes", NULL, 0};
-	char *env[] = { 0 };
+	//char *args[] = {"/bin/yes", NULL, 0};
+	//char *env[] = { 0 };
+	char* const arg1[] = {"yes","aa",NULL};
 
 	pid_t pid = fork(); //creates a child process
 
 	if(pid == 0) { //child process
+<<<<<<< HEAD:HeilemanD_LubkinI_PA2/HeilemanD_LubkinI_PA02_alternative.c
 		execve("/bin/yes", args, env);
 	}
 
+=======
+		//execve("/bin/yes", args, env);
+		execv("/usr/bin/yes",arg1); 
+		while(1){
+			if(toggle == 0)
+				kill(getpid(),18);
+			else if(toggle == 1)
+				kill(getpid(),19);
+			else if(toggle == 2 && signum == 2)
+				exit(1);
+		}
+	}	
+	
+>>>>>>> 30f9995746a0f95fdbe46d142d522a1ef3d6ba88:HeilemanD_LubkinI_PA2/HeilemanD_LubkinI_PA02_fixed.c
 	else if(pid < 0 ) { //error condition
 		perror("Fork error");
 	}
 
 	else { //parent process
+<<<<<<< HEAD:HeilemanD_LubkinI_PA2/HeilemanD_LubkinI_PA02_alternative.c
 
 		while(1){
 
+=======
+		/*
+		while(1){			
+			
+>>>>>>> 30f9995746a0f95fdbe46d142d522a1ef3d6ba88:HeilemanD_LubkinI_PA2/HeilemanD_LubkinI_PA02_fixed.c
 			if(toggle == 0) {
 				//printf("\nctrl+z caught, resuming child process\n");
 				kill(pid,18); //18 corresponds to SIGCONT, continue/resume the process
@@ -78,11 +99,12 @@ int main() {
 
 			else if (toggle == 2) {
 				kill(pid, 9); //9 corresponds to SIGKILL, terminate the process
-				wait(NULL);
+				//wait(NULL);
 			}
 
 			wait(NULL);
-		}
+		}*/
+		wait(NULL);
 	}
 
 	return 0;
