@@ -14,28 +14,37 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <signal.h>
 
-int toggle = 0; //initializing the global toggle value used to toggle the yes function
-int signum = 0;
+int toggle = 1; //initializing the global toggle value used to toggle the yes function
+//int signum = 0;
+pid_t pid;
 void parent_signalHandler(int sig) {
-	if(sig == 2) {
+//	if(sig == SIGINT) {
 		printf("\nctrl+c caught, terminating both processes\n");
-		toggle = 2;
-		signum = 2;
+		kill(getpid(), SIGKILL);
+		//toggle = 2;
+		//signum = 2;
 		//exit(1);
-	}
-	else if(sig == 20) {
-		signum = 20;
-		toggle = (toggle == 0 ? 1 : 0 );
-		if( toggle == 0 ) 
+//	}
+}
+
+void toggle_signalHandler(int sig) {
+		//signum = 20;
+		toggle = (toggle == 1 ? 0 : 1 );
+		if( toggle == 0 ) {
 			printf("\nctrl+z caught, stopping child process\n");
-		else
+			kill(pid, SIGTSTP);
+		}
+		else {
 			printf("\nctrl+z caught, resuming child process\n");
-	}
+			kill(pid, SIGCONT);
+		}
+	
 }
 
 int main() {
-	struct sigaction actp; 
+	/*struct sigaction actp; 
 	actp.sa_handler = parent_signalHandler; 
 	sigemptyset(&actp.sa_mask); 
 	actp.sa_flags = 0;
@@ -47,24 +56,29 @@ int main() {
 	sigemptyset(&actp2.sa_mask);
 
 	sigaction(SIGTSTP, &actp2, 0); 
+	*/
+
+	signal( SIGINT, parent_signalHandler );
+	signal( SIGTSTP, toggle_signalHandler );
 
 	//char *args[] = {"/bin/yes", NULL, 0};
 	//char *env[] = { 0 };
-	char* const arg1[] = {"yes","aa",NULL};
+	char* const arg1[] = {"yes", NULL};
 
-	pid_t pid = fork(); //creates a child process
+	//pid_t pid = fork(); //creates a child process
+	pid = fork();
 
 	if(pid == 0) { //child process
 		//execve("/bin/yes", args, env);
 		execv("/usr/bin/yes",arg1); 
-		while(1){
+		/*while(1){
 			if(toggle == 0)
 				kill(getpid(),18);
 			else if(toggle == 1)
 				kill(getpid(),19);
 			else if(toggle == 2 && signum == 2)
 				exit(1);
-		}
+		}*/
 	}	
 	
 	else if(pid < 0 ) { //error condition
@@ -94,6 +108,6 @@ int main() {
 		}*/
 		wait(NULL);
 	}
-	
+	while(1){}
 	return 0;
 }
