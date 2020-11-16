@@ -10,12 +10,36 @@
 int totArrive, totRiders, totReject, avgWaitTime, lineSize; //variables for tracking
 
 //// Function Declarations ////
-int lineAdder( int t );
+int lineAdder( int t ); // will this be int or void?
+// int carFunction() // what are we passing? Carnum?
 
-int main(){
-  for (int t = 0; t < 599; t++) {
-    lineAdder(t);
+
+
+int main(){ // will pass number of cars and number of people in the car at command line
+
+/*
+  integer time
+  create shared integer lineSize
+  create mutex variables for inter-car communication
+  create mutex variables for line adder communication (maybe merge w/ above)
+*/
+
+// just for testing line adder
+  for (int t = 0; t < 599; t++) { // just dummy time to test lineAdder
+    lineAdder(t); //calling lineAdder
   }
+
+/*for( i < carNum )
+    create_thread( carFunction() )
+
+create_thread( lineAdder() )
+
+for( i < minutesInDay )
+    join_thread( line add thread )
+    for( i < carNum )
+        join_thread( car )
+    wait( wait time ) //or we could use an alarm?
+*/
 
 }
 
@@ -66,3 +90,14 @@ int lineAdder( int time ){
 
   return 0;
 }
+
+/*
+carFunction()
+    wait on mutex variables
+    with permission
+if lineSize > carSize
+        remove carSize from lineSize
+else
+    lineSize = 0
+    release mutex variables
+  */
