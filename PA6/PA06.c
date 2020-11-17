@@ -10,6 +10,7 @@
 
 int totArrive, totRiders, totReject, avgWaitTime, lineSize; //variables for tracking
 int time; // global for checking time
+int carNum, carSize; // globals to store data passed to main
 pthread_mutex_t mutex = PTHREAD_MUTEX_INTIALIZER; //global mutex to regulate access to cs
 //pthread_mutex_t mutex = PTHREAD_MUTEX_INTIALIZER;
 //pthread_mutex_t mutex = PTHREAD_MUTEX_INTIALIZER;
@@ -24,8 +25,10 @@ int carFunction(); // what are we passing? Carnum?
  */
 
 
-int main(){ // will pass number of cars and number of people in the car at command line
+int main(int argc, char** argv){ // will pass number of cars and number of people in the car at command line
 
+	carNum = (int*)argv[0];
+	carSize = (int*)argv[1];
 /*
   integer time
   create shared integer lineSize
@@ -109,7 +112,7 @@ carFunction()
 	} //else mutex sucessful
 	mutex_checker = pthread_cond_wait( &mutex );
 	if( mutex_checker == 0 ) {
-		if (lineSize > carSize) //uh-oh - gotta set up shared access to carSize from main...
+		if (lineSize > carSize)
 			lineSize -= carSize;
 		else
 			lineSize = 0;
