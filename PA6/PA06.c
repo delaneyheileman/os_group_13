@@ -27,8 +27,8 @@ int carFunction(); // what are we passing? Carnum?
 
 int main(int argc, char** argv){ // will pass number of cars and number of people in the car at command line
 
-	carNum = (int*)argv[0];
-	carSize = (int*)argv[1];
+	carNum = (int*)argv[1];
+	carSize = (int*)argv[2];
 /*
   integer time
   create shared integer lineSize
