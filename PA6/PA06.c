@@ -3,16 +3,25 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <pthread.h>
 #include "random437.h"
 
 //// Global Variables ////
 
 int totArrive, totRiders, totReject, avgWaitTime, lineSize; //variables for tracking
+int time; // global for checking time
+pthread_mutex_t mutex = PTHREAD_MUTEX_INTIALIZER; //global mutex to regulate access to cs
+//pthread_mutex_t mutex = PTHREAD_MUTEX_INTIALIZER;
+//pthread_mutex_t mutex = PTHREAD_MUTEX_INTIALIZER;
+
 
 //// Function Declarations ////
-int lineAdder( int t ); // will this be int or void?
-// int carFunction() // what are we passing? Carnum?
-
+int lineAdder(); // will this be int or void?
+int carFunction(); // what are we passing? Carnum?
+/* From Ian: The above functions should have void input; they are the thread functions
+ * that we'll use to create the threads and can't have inputs (I think... they won't
+ * need them anyways, they'll just use the globals)
+ */
 
 
 int main(){ // will pass number of cars and number of people in the car at command line
@@ -91,13 +100,18 @@ int lineAdder( int time ){
   return 0;
 }
 
-/*
 carFunction()
-    wait on mutex variables
-    with permission
-if lineSize > carSize
-        remove carSize from lineSize
-else
-    lineSize = 0
-    release mutex variables
-  */
+	int mutex_checker;
+	mutex_checker = pthread_mutex_lock(&mutex);
+	if (mutex_checker) { 
+    		perror("pthread_mutex_lock");
+    		pthread_exit(NULL);
+	} //else mutex sucessful
+	mutex_checker = pthread_cond_wait( &mutex );
+	if( mutex_checker == 0 ) {
+		if (lineSize > carSize) //uh-oh - gotta set up shared access to carSize from main...
+			lineSize -= carSize;
+		else
+			lineSize = 0;
+	}
+	pthread_mutex_unlock(&mutex);
