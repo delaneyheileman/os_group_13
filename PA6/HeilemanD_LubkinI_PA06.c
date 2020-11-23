@@ -13,6 +13,7 @@ int curTime = 0; // global for checking time
 int carNum, carSize; // globals to store data passed to main
 int linePerm = 0;
 int *carPerm;
+//int carsGone;
 pthread_t *carId;
 pthread_mutex_t line_mutex = PTHREAD_MUTEX_INITIALIZER; //global mutex to regulate access to cs
 pthread_mutex_t car_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -35,21 +36,39 @@ int main(int argc, char** argv){
 	carId = (pthread_t*)malloc(carNum*sizeof(pthread_t));
 	carPerm = (int*)malloc(carNum*sizeof(int));
 	linePerm = 0;
-
+	/*
 	for(int i = 0; i < carNum; i++) {
 		carPerm[i] = 0;
 		pthread_create( &(carId[i]), NULL, carFunction, NULL);
 	}
 
 	pthread_create( &lineId, NULL, lineAdder, NULL);
-
+	*/
+	//carsGone = carNum;
 	while(curTime < 599) {
-		pthread_mutex_lock(&line_mutex);
-		linePerm = 1;
-		pthread_mutex_unlock(&line_mutex);
-		usleep(100000);
-		curTime++;
-		printf("Current Time: %d\n", curTime);
+		//if( carsGone == carNum ) {
+			for(int i = 0; i < carNum; i++) {
+				carPerm[i] = 0;
+				pthread_create( &(carId[i]), NULL, carFunction, NULL);
+			}
+
+			pthread_create( &lineId, NULL, lineAdder, NULL);
+			
+			pthread_mutex_lock(&line_mutex);
+			pthread_mutex_lock(&car_mutex);
+			linePerm = 1;
+			//carsGone = 0;
+			pthread_mutex_unlock(&line_mutex);
+			pthread_mutex_unlock(&car_mutex);
+			
+			usleep(10000);
+			printf("Current Time: %d\n", curTime);
+			for(int i = 0; i < carNum; i++) {
+				pthread_join( (carId[i]), NULL);
+			}
+			pthread_join( lineId, NULL );
+			curTime++;
+		//}
 	}
 }
 
@@ -99,8 +118,8 @@ void *lineAdder(){
     linePerm = 0;
     for(int i = 0; i < carNum; i++) {
       carPerm[i] = 1;
-      output = fopen("PA06_out.txt", "w");
-      fprintf(output, "%d arrive %d reject %d wait-line %d at %d", curTime, newWaiters, 
+      output = fopen("PA06_out.txt", "a");
+      fprintf(output, "%d arrive %d reject %d wait-line %d at %d\n", curTime, newWaiters, 
 		  rejected, lineSize, curTime); //will need to change the last var here to give HH:MM:SS
       fclose(output); 
  
@@ -131,7 +150,10 @@ void *carFunction() {
 				else
 					lineSize = 0;
 			//}
+			printf("Car %d arrives; it takes <= %d people from line of %d people\n",
+					threadIndex, carSize, lineSize);
 			carPerm[threadIndex] = 0;
+			//carsGone++;
 		}
 		pthread_mutex_unlock(&car_mutex);
 		usleep(10);
