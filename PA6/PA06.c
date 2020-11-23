@@ -139,7 +139,7 @@ int lineAdder(){
 
   return 0;
 }
-
+/*
 carFunction()
 	pthread_mutex_lock(&car_mutex);
 	int mutex_checker = pthread_cond_wait( &car_mutex );
@@ -159,4 +159,4 @@ carFunction()
 		carPerm[threadIndex] = 0;
 	}
 	pthread_mutex_unlock(&car_mutex);
-}
+} */

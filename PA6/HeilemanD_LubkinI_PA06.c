@@ -13,6 +13,7 @@ int curTime = 0; // global for checking time
 int carNum, carSize; // globals to store data passed to main
 int linePerm = 0;
 int *carPerm;
+pthread_t *carId;
 pthread_mutex_t line_mutex = PTHREAD_MUTEX_INITIALIZER; //global mutex to regulate access to cs
 pthread_mutex_t car_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -25,11 +26,13 @@ void *carFunction();
 
 int main(int argc, char** argv){
 
-	carNum = *((int*)argv[1]); 
-	carSize = *((int*)argv[2]);
-	
+	carNum = atoi( argv[1] ); 
+	carSize = atoi( argv[2] );
+
+	printf("Car size: %d, Car Number: %d\n", carSize, carNum);
+
 	pthread_t lineId;
-	pthread_t *carId = (pthread_t*)malloc(carNum*sizeof(pthread_t));
+	carId = (pthread_t*)malloc(carNum*sizeof(pthread_t));
 	carPerm = (int*)malloc(carNum*sizeof(int));
 	linePerm = 0;
 
@@ -46,6 +49,7 @@ int main(int argc, char** argv){
 		pthread_mutex_unlock(&line_mutex);
 		usleep(100000);
 		curTime++;
+		printf("Current Time: %d\n", curTime);
 	}
 }
 
@@ -53,7 +57,7 @@ int main(int argc, char** argv){
 void *lineAdder(){
   pthread_mutex_lock(&line_mutex);
   pthread_mutex_lock(&car_mutex);
-  if( linePerm == 1) {
+  if(linePerm == 1) {
     int meanArrival, newWaiters, newLine, rejected;
     printf("time : %d \n", curTime);
     
@@ -95,37 +99,40 @@ void *lineAdder(){
     linePerm = 0;
     for(int i = 0; i < carNum; i++) {
       carPerm[i] = 1;
+      output = fopen("PA06_out.txt", "w");
+      fprintf(output, "%d arrive %d reject %d wait-line %d at %d", curTime, newWaiters, 
+		  rejected, lineSize, curTime); //will need to change the last var here to give HH:MM:SS
+      fclose(output); 
+ 
     }
+    usleep(10);
   }
   pthread_mutex_unlock(&line_mutex);
   pthread_mutex_unlock(&car_mutex);
   
-  output = fopen("PA06_out.txt", "w");
-  fprintf(output, "%d arrive %d reject %d wait-line %d at %d", curTime, newWaiters, 
-		  rejected, lineSize, curTime); //will need to change the last var here to give HH:MM:SS
-  fclose(output); 
-  //need to output to file    output( curTime, newWaiters, rejected, lineSize ) 
+ //need to output to file    output( curTime, newWaiters, rejected, lineSize ) 
 
   return 0;
 }
 
 void *carFunction() {
-	pthread_mutex_lock(&car_mutex);
-	//int mutex_checker = pthread_cond_wait( &car_mutex );
-	int theadIndex = 0;
-	for(int i = 0; i < carNum; i++) {
-		if(carId[i] == pthread_self()) {
-			threadIndex = i;
+		pthread_mutex_lock(&car_mutex);
+		//int mutex_checker = pthread_cond_wait( &car_mutex );
+		int threadIndex = 0;
+		for(int i = 0; i < carNum; i++) {
+			if(carId[i] == pthread_self()) {
+				threadIndex = i;
+			}
 		}
-	}
-	if(carPerm[threadIndex]) {
-		//if(mutex_checker == 0) {
-			if (lineSize > carSize)
-				lineSize -= carSize;
-			else
-				lineSize = 0;
-		//}
-		carPerm[threadIndex] = 0;
-	}
-	pthread_mutex_unlock(&car_mutex);
+		if(carPerm[threadIndex]) {
+			//if(mutex_checker == 0) {
+				if (lineSize > carSize)
+					lineSize -= carSize;
+				else
+					lineSize = 0;
+			//}
+			carPerm[threadIndex] = 0;
+		}
+		pthread_mutex_unlock(&car_mutex);
+		usleep(10);
 }

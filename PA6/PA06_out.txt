@@ -1,0 +1,1 @@
+0 arrive 30 reject 0 wait-line 30 at 0
