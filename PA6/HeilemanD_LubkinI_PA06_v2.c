@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include "random437.h"
 //// Global Variables ////
-FILE *output;
+FILE *output, *outputcsv;
 int totArrive, totRiders, totReject, avgWaitTime, lineSize; //variables for tracking
 int curTime = 0; // global for checking time
 int carNum, carSize; // globals to store data passed to main
@@ -14,6 +14,7 @@ pthread_t *carId;
 pthread_mutex_t line_mutex = PTHREAD_MUTEX_INITIALIZER; //global mutex to regulate access to cs
 pthread_mutex_t car_mutex = PTHREAD_MUTEX_INITIALIZER;
 char buffer [255];
+char txtname[255], csvname[255];
 
 
 //// Function Declarations ////
@@ -31,9 +32,13 @@ int main(int argc, char** argv){
 	printf("Please enter the date:");
 	scanf("%s", str);
 
-	sprintf(buffer, "PA06_out_%d-%d-%s.txt", carNum, carSize, str);
-
-	//printf("Car size: %d, Car Number: %d\n", carSize, carNum);
+	sprintf(buffer, "PA06_out_%d-%d-%s", carNum, carSize, str);
+	txtname = strcat(buffer, ".txt");
+	cvsname = strcat(buffer, ".csv");
+	
+	fopen(outputcsv, "a");
+	fprintf(outputcsv, "curTime, newWaiters, rejected, lineSize\n");
+	fclose(outputcsv);
 
 	pthread_t lineId;
 	carId = (pthread_t*)malloc(carNum*sizeof(pthread_t));
@@ -54,6 +59,11 @@ int main(int argc, char** argv){
 			usleep(53000); //wait for car travel, 53 ms = 53 sec
 			curTime++;
 	}
+	
+	fopen(output, "a");
+	fprintf(output, "Summary: Total Arrived: %d, Total Rejected: %d\n"
+			, totArrive, totReject);//need to add wait time and max line size
+	fclose(outputcsv);
 	printf("execution finished sucessfully\n");
 	pthread_exit(NULL);
 	return 0;
@@ -102,10 +112,13 @@ void *lineAdder(){
     totReject = totReject + rejected;
     }
     //printf("Line adder ran. Line size: %d\n", lineSize);
-	output = fopen(buffer, "a");
+      output = fopen(txtname, "a");
+      outputcsv = fopen( csvname, "a");
      // output = fopen("PA06_out.txt", "a");
       fprintf(output, "%d arrive %d reject %d wait-line %d at %d\n", curTime, newWaiters, 
 		  rejected, lineSize, curTime); //will need to change the last var here to give HH:MM:SS
+      fprintf(outputcsv, "%d, %d, %d, %d\n", curTime, newWaiters, rejected, lineSize);
+      fclose(outputcsv);
       fclose(output); 
  
   pthread_mutex_unlock(&line_mutex);
