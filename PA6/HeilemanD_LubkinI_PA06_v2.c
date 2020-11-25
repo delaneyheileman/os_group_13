@@ -9,7 +9,8 @@
 
 //// Global Variables ////
 FILE *output, *outputcsv;
-int totArrive, totRiders, totReject, avgWaitTime, lineSize; //variables for tracking
+int totArrive = 0, totRiders = 0, totReject = 0, avgWaitTime = 0, lineSize = 0; //variables for tracking
+int carsGone = 0, waitMinutes = 0, waitSeconds = 0;
 int curTime = 0; // global for checking time
 int carNum, carSize; // globals to store data passed to main
 pthread_t *carId;
@@ -50,7 +51,12 @@ int main(int argc, char** argv){
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 	while(curTime < 599) {
-			//printf("\nCurrent Time: %d\n", curTime);
+			pthread_mutex_lock(&line_mutex);
+			pthread_mutex_lock(&car_mutex);
+			carsGone = 0;
+			pthread_mutex_unlock(&line_mutex);
+			pthread_mutex_unlock(&car_mutex);
+			
 			pthread_create( &lineId, &attr, lineAdder, NULL);
 			pthread_join( lineId, NULL );
 			usleep(1400); //wait for car loading, 7ms = 7sec
@@ -68,8 +74,7 @@ int main(int argc, char** argv){
 	}
 	
 	output = fopen(txtname, "a");
-	fprintf(output, "Summary: Total Arrived: %d, Total Rejected: %d\n"
-			, totArrive, totReject);//need to add wait time and max line size
+	fprintf(output, "Summary: Total Arrived: %d people, Total Rejected: %d people, Average wait: %f minutes\n" , totArrive, totReject, ((double)waitSeconds/60.0)/(double)(totArrive-totReject));//need to add wait time and max line size
 	fclose(outputcsv);
 	printf("\rexecution finished sucessfully\n");
 	pthread_exit(NULL);
@@ -80,6 +85,8 @@ int main(int argc, char** argv){
 void *lineAdder(){
   pthread_mutex_lock(&line_mutex);
   pthread_mutex_lock(&car_mutex);
+  waitMinutes += lineSize;
+  waitSeconds += (lineSize*(60-carNum*7));
     int meanArrival = 0, newWaiters = 0, newLine = 0, rejected = 0;
     //printf("time : %d \n", curTime);
     
@@ -122,7 +129,7 @@ void *lineAdder(){
       output = fopen(txtname, "a");
       outputcsv = fopen(csvname, "a");
      // output = fopen("PA06_out.txt", "a");
-      fprintf(output, "%d arrive %d reject %d wait-line %d at %d\n", curTime, newWaiters, rejected, lineSize, curTime); //will need to change the last var here to give HH:MM:SS
+      fprintf(output, "%d arrive %d reject %d wait-line %d at %.2d:%.2d:00\n", curTime, newWaiters, rejected, lineSize, (curTime/60)+9, curTime%60); //will need to change the last var here to give HH:MM:SS
       fprintf(outputcsv, "%d, %d, %d, %d\n", curTime, newWaiters, rejected, lineSize);
       fclose(outputcsv);
       fclose(output); 
@@ -136,6 +143,8 @@ void *lineAdder(){
 void *carFunction() {
 		pthread_mutex_lock(&car_mutex);
 		pthread_mutex_lock(&line_mutex);
+		waitSeconds += (lineSize)*(carsGone*7);
+		carsGone++;
 		int threadIndex = 0;
 		for(int i = 0; i < carNum; i++) {
 			if(carId[i] == pthread_self()) {
