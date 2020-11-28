@@ -597,4 +597,5 @@
 596 arrive 29 reject 0 wait-line 336 at 18:56:00
 597 arrive 29 reject 0 wait-line 337 at 18:57:00
 598 arrive 32 reject 0 wait-line 341 at 18:58:00
-Summary: Total Arrived: 19977 people, Total Rejected: 3170 people, Average wait: 22.565350 minutes
+599 arrive 22 reject 0 wait-line 335 at 18:59:00
+Summary: Total Arrived: 19999 people, Total Rejected: 3170 people, Average wait: 22.559025 minutes, Max line size: 800
